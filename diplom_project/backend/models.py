@@ -3,6 +3,9 @@ from django.contrib.auth.models import BaseUserManager, AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 
 
+class Person(models.Model):
+   name = models.CharField(max_length=200)
+
 class OrderStateChoices(models.TextChoices):
     """Статусы заказа."""
 
@@ -347,3 +350,5 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.order}: {self.product_info}"
+
+

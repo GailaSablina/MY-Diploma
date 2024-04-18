@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, StringRelatedField
+from .models import Person
 
 from orders.backend.models import (
     Shop,
@@ -145,3 +146,9 @@ class OrderInfoSerializer(ModelSerializer):
     class Meta:
         model = Order
         fields = ["dt", "state", "user", "contact", "order_items", "total_sum"]
+class PersonSerializer(serializers.ModelSerializer):
+   name = serializers.CharField(max_length=200)
+
+   class Meta:
+       model = Person
+       fields = ('__all__')
