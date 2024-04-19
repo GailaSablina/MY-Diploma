@@ -43,6 +43,7 @@ router.register(r"products", ProductView, basename="products")
 router.register(r"orders", OrderView, basename="orders")
 
 urlpatterns = [
+    path(r'jet/' , include('jet.urls' , 'jet')) ,  # Django JET URLS
     path("admin/", admin.site.urls),
     path("register/", UserRegisterView.as_view(), name="register"),
     path("login/", Login.as_view(), name="login"),
