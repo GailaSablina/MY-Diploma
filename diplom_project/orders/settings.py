@@ -11,8 +11,95 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+from django import VERSION as __DJ_V
+
 from dotenv import load_dotenv
 
+DATABASES = {
+    'sqlite3': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'cachalot.sqlite3',
+    },
+    'postgresql': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'cachalot',
+        'USER': 'cachalot',
+        'PASSWORD': 'password',
+        'HOST': '127.0.0.1',
+    },
+    'mysql': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'cachalot',
+        'USER': 'root',
+        'HOST': '127.0.0.1',
+    },
+}
+if 'MYSQL_PASSWORD' in os.environ:
+    DATABASES['mysql']['PASSWORD'] = os.environ['MYSQL_PASSWORD']
+if 'POSTGRES_PASSWORD' in os.environ:
+    DATABASES['postgresql']['PASSWORD'] = os.environ['POSTGRES_PASSWORD']
+for alias in DATABASES:
+    if 'TEST' not in DATABASES[alias]:
+        test_db_name = 'test_' + DATABASES[alias]['NAME']
+        DATABASES[alias]['TEST'] = {'NAME': test_db_name}
+
+DATABASES['default'] = DATABASES.pop(os.environ.get('DB_ENGINE', 'sqlite3'))
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+DATABASE_ROUTERS = ['cachalot.tests.db_router.PostgresRouter']
+
+CACHES = {
+    'redis': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/0',
+        'OPTIONS': {
+            # Since we are using both Python 2 & 3 in tests, we need to use
+            # a compatible pickle version to avoid unpickling errors when
+            # running a Python 2 test after a Python 3 test.
+            'PICKLE_VERSION': 2,
+        },
+    },
+    'memcached': {
+        'BACKEND': 'django.core.cache.backends.memcached.'
+                   + ('PyMemcacheCache' if __DJ_V[0] > 2
+                      and (__DJ_V[1] > 1 or __DJ_V[0] > 3) else 'MemcachedCache'),
+        'LOCATION': '127.0.0.1:11211',
+    },
+    'locmem': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'OPTIONS': {
+            # We want that limit to be infinite, otherwise we can’t
+            # reliably count the number of SQL queries executed in tests.
+
+            # In this context, 10e9 is enough to be considered
+            # infinite.
+            'MAX_ENTRIES': 10e9,
+        }
+    },
+    'filebased': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/tmp/django_cache',
+        'OPTIONS': {
+            'MAX_ENTRIES': 10e9,  # (See locmem)
+        },
+    }
+}
+
+try:
+    import pylibmc
+except ImportError:
+    pass
+else:
+    CACHES['pylibmc'] = {
+        'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+
+DEFAULT_CACHE_ALIAS = os.environ.get('CACHE_BACKEND', 'locmem')
+CACHES['default'] = CACHES.pop(DEFAULT_CACHE_ALIAS)
+if DEFAULT_CACHE_ALIAS == 'memcached' and 'pylibmc' in CACHES:
+    del CACHES['pylibmc']
+elif DEFAULT_CACHE_ALIAS == 'pylibmc':
+    del CACHES['memcached']
 
 load_dotenv()
 
@@ -39,6 +126,8 @@ ALLOWED_HOSTS = [
 
 INSTALLED_APPS = [
     "jet",
+    "cachalot" ,
+    "cachalot.admin_tests" ,
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -56,6 +145,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "silk.middleware.SilkyMiddleware",
+    "cachalot': 'cachalot.tests.migrations",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -191,3 +281,4 @@ For more information, visit https://github.com/alina-vorontsova/python-final-dip
 
 CELERY_BROKER_URL = os.getenv("CELERY_BACKEND")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_BROKER")
+
